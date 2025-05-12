@@ -1,6 +1,5 @@
 import io
 import os
-import requests
 import logging
 import unittest
 
@@ -20,10 +19,9 @@ class TestApiShine(unittest.TestCase):
     def tearDown(self):
         self.log.handlers.clear()
 
-    @patch("requests.post")
-    def test_user_login(self, mock_post: requests.post):
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = (
+    @patch("optimshine.common_api.CommonApi.api_post_request")
+    def test_user_login(self, mock_api_post_request):
+        mock_api_post_request.return_value = (
             {"data": {"token": "xyz"}}
         )
 
@@ -33,11 +31,10 @@ class TestApiShine(unittest.TestCase):
         self.assertEqual(cls_api_shine.token, "xyz")
         self.assertTrue(result)
 
-    @patch("requests.post")
-    def test_user_login_wrong_password(self, mock_post: requests.post):
+    @patch("optimshine.common_api.CommonApi.api_post_request")
+    def test_user_login_wrong_password(self, mock_api_post_request):
         stdio = io.StringIO()
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = (
+        mock_api_post_request.return_value = (
             {"data": "Wrong password"}
         )
 
@@ -51,10 +48,10 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Login attempt failed. Wrong password", stdout)
 
-    @patch("requests.post")
-    def test_user_login_status_code(self, mock_post: requests.post):
+    @patch("optimshine.common_api.CommonApi.api_post_request")
+    def test_user_login_api_request_failed(self, mock_api_post_request):
         stdio = io.StringIO()
-        mock_post.return_value.status_code = 501
+        mock_api_post_request.return_value = None
 
         handler = logging.StreamHandler(stream=stdio)
         self.log.addHandler(handler)
@@ -64,7 +61,7 @@ class TestApiShine(unittest.TestCase):
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
-        self.assertIn("Login attempt failed. Status code 501", stdout)
+        self.assertIn("Login attempt failed!", stdout)
 
     def test_user_login_user_name(self):
         stdio = io.StringIO()
