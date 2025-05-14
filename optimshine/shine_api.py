@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import time
 
 from logging import RootLogger
 from optimshine.common_api import CommonApi
@@ -12,13 +13,19 @@ SHINE_API_ENDPOINTS = {
     "plant_list": "/plant/list_plant",
     "device_list": "/device/list_device_all_type",
     "production_data": "/storageRealtimeData/chart_storageRealtimeData_mate",
-    "setting_values": "/deviceCommand/get_command_setting_original_value"
+    "device_values": "/device/get_device_snapshot",
+    "setting_values": "/deviceCommand/get_command_setting_original_value",
+    "setting_command": "/deviceCommand/create_setting_command",
+    "command_status": "/deviceCommand/get_device_command_status",
 }
 SHINE_PV_DATA_LABELS = {
     "pvTotalPower": "PV power generated",
     "acTtlInpower": "Grid power",
     "acTotalOutActPower": "Total load",
     "emsPower": "Battery Power",
+}
+SHINE_DEVICE_VALUES = {
+    "battery_soc": "emsSoc"
 }
 SHINE_SETTING_VALUES = {
     "battery_charge_current": "bmchc",
@@ -74,7 +81,7 @@ class ApiShine(CommonApi):
             self.token = login_response["data"]["token"]
         except TypeError:
             self.log.error(
-                f"Login attempt failed. {login_response['data']}"
+                f"Login attempt failed. {login_response}"
             )
             return False
 
@@ -123,7 +130,7 @@ class ApiShine(CommonApi):
         try:
             plants_data = response["data"]["dataList"]
         except TypeError:
-            self.log.error(f"Getting plants list failed. {response['data']}")
+            self.log.error(f"Getting plants list failed. {response}")
             return False
 
         if not plants_data:
@@ -167,7 +174,7 @@ class ApiShine(CommonApi):
         try:
             device_data = response["data"]["dataList"]
         except TypeError:
-            self.log.error(f"Getting device list failed. {response['data']}")
+            self.log.error(f"Getting device list failed. {response}")
             return False
 
         if not device_data:
@@ -221,7 +228,7 @@ class ApiShine(CommonApi):
             pv_data = response["data"]["storageMateDTOS"]
             pv_data_time = response["data"]["dataTime"]
         except TypeError:
-            self.log.error(f"Getting PV data failed. {response['data']}")
+            self.log.error(f"Getting PV data failed. {response}")
             return False
 
         if not pv_data or not pv_data_time:
@@ -279,8 +286,137 @@ class ApiShine(CommonApi):
             )
         except TypeError:
             self.log.error(f"Getting {value_name} value failed."
-                           f" {response['data']}")
+                           f" {response}")
             return False
 
         self.log.info(f"{value_name} value successfully obtained.")
+        return True
+
+    def _get_device_value(self, inverter_serial_number, value_name):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
+        try:
+            value_alias = SHINE_DEVICE_VALUES[value_name]
+        except KeyError:
+            self.log.error(f"{value_name} is not supported!")
+            return False
+
+        device_url = self._get_shine_api_url("device_values")
+        get_device_request = {
+            "deviceSn": inverter_serial_number,
+            "deviceType": "OC",
+            "dateStr": self._get_request_time(),
+        }
+
+        self.log.debug(f"Sending device values request to {device_url}")
+        response = self.api_post_request(
+            device_url,
+            get_device_request,
+            self.token
+        )
+        if not response:
+            self.log.error("Getting device values failed!")
+            return False
+        try:
+            self.device_value = (
+                response["data"][value_alias]
+            )
+        except TypeError:
+            self.log.error(f"Getting {value_name} value failed."
+                           f" {response}")
+            return False
+
+        self.log.info(f"{value_name} value successfully obtained.")
+        return True
+
+    def _setting_command_status(self, id, timeout=10):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
+        command_status_url = self._get_shine_api_url("command_status")
+        command_status_request = {"id": id}
+        self.log.debug("Sending setting command request to"
+                       f" {command_status_url}")
+
+        for _ in range(0, timeout, 2):
+            response = self.api_post_request(
+                command_status_url,
+                command_status_request,
+                self.token
+            )
+            if not response:
+                self.log.error("Getting command stasus failed!")
+                return False
+            try:
+                command_status = response["data"]["result"]
+            except TypeError:
+                self.log.error(f"Checking command status failed."
+                               f" {response}")
+                return False
+            if command_status == 1:
+                self.log.info("Setting command sent successfuly.")
+                return True
+            else:
+                time.sleep(2)
+        self.log.error("Command timeout!")
+        return False
+
+    def set_charge_current(self, inverter_serial_number, current):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
+        current_formated = str(10*current)
+        timestamp_ms = int(datetime.datetime.now().timestamp() * 1000)
+        settings_url = self._get_shine_api_url("setting_command")
+
+        charge_current_request = {
+            "deviceSn": inverter_serial_number,
+            "timeZone": "Europe/Warsaw",
+            "timestamp": timestamp_ms,
+            "oldVersion": 1,
+            "useType": 5,
+            "groupId": 1,
+            "deviceCommands": [
+                {
+                    "dataHandlerType": 0,
+                    "fieldName": "bmchc",
+                    "groupId": 0,
+                    "paramType": 0,
+                    "useType": 3,
+                    "fieldValue": current_formated
+                }
+            ],
+            "realContentParam": [
+                "bmchc"
+            ]
+        }
+
+        self.log.debug(f"Sending setting command request to {settings_url}")
+        response = self.api_post_request(
+            settings_url,
+            charge_current_request,
+            self.token
+        )
+        if not response:
+            self.log.error(response)
+            self.log.error("Setting charge current failed!")
+            return False
+        try:
+            command_id = response["data"][0]["id"]
+        except TypeError:
+            self.log.error(f"Sending setting command failed."
+                           f" {response}")
+            return False
+
+        self.log.debug("Checking command status.")
+        status = self._setting_command_status(command_id)
+        if not status:
+            self.log.error("Wrong command status."
+                           " Setting charge current failed!")
+            return False
+        self.log.info("Charge current successfuly set.")
         return True
