@@ -3,7 +3,7 @@ import os
 import logging
 import unittest
 
-import optimshine.shine_api as api
+import optimshine.api_shine as api
 import optimshine.optim_config as config
 
 from unittest.mock import patch
@@ -19,7 +19,7 @@ class TestApiShine(unittest.TestCase):
     def tearDown(self):
         self.log.handlers.clear()
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_user_login(self, mock_api_post_request):
         mock_api_post_request.return_value = (
             {"data": {"token": "xyz"}}
@@ -31,7 +31,7 @@ class TestApiShine(unittest.TestCase):
         self.assertEqual(cls_api_shine.token, "xyz")
         self.assertTrue(result)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_user_login_wrong_password(self, mock_api_post_request):
         stdio = io.StringIO()
         mock_api_post_request.return_value = (
@@ -49,7 +49,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Login attempt failed. {'data': 'Wrong password'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_user_login_api_request_failed(self, mock_api_post_request):
         stdio = io.StringIO()
         mock_api_post_request.return_value = None
@@ -78,7 +78,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Shine API user or password not set!", stdout)
         os.environ["SHINE_USER"] = "test"
 
-    @patch("optimshine.shine_api.ApiShine._get_shine_api_url")
+    @patch("optimshine.api_shine.ApiShine._get_shine_api_url")
     def test_user_login_wrong_endpoint(self, mock_get_url):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -104,7 +104,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Session is not authorized!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_plant_list_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -119,7 +119,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting plant list failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_plant_list_wrong_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -137,7 +137,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Getting plants list failed. {'data': 'Test issue'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_plant_list_empty_list(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -154,7 +154,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("No plants available!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_plant_list_pass(self, mock_api_post_request):
         mock_api_post_request.return_value = (
             {"data": {"dataList": [
@@ -190,7 +190,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Session is not authorized!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_list_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -205,7 +205,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting device list failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_list_wrong_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -223,7 +223,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Getting device list failed. {'data': 'Test issue'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_list_empty_list(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -240,7 +240,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("No devices available!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_list_pass(self, mock_api_post_request):
         mock_api_post_request.return_value = (
             {"data": {"dataList": [
@@ -274,7 +274,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Session is not authorized!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_pv_production_data_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -289,7 +289,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting PV data failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_pv_production_data_wrong_response(self,
                                                    mock_api_post_request):
         stdio = io.StringIO()
@@ -306,7 +306,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Getting PV data failed. {'data': 'Wrong data'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_pv_production_data_empty_data(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -326,7 +326,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("No PV data acquired!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_pv_production_data_pass(self, mock_api_post_request):
         mock_api_post_request.return_value = {
             "data": {
@@ -404,7 +404,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("wrong_value is not supported!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_setting_value_response_none(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -420,7 +420,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting setting values failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_setting_value_wrong_data(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -440,7 +440,7 @@ class TestApiShine(unittest.TestCase):
             stdout
         )
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_setting_value_pass(self, mock_api_post_request):
         mock_api_post_request.return_value = {
             "data": {
@@ -468,7 +468,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Session is not authorized!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_setting_command_status_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -483,7 +483,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting command stasus failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_setting_command_status_wrong_response(self,
                                                    mock_api_post_request):
         stdio = io.StringIO()
@@ -500,7 +500,7 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Checking command status failed. {'data': 'Test issue'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_setting_command_status_timeout(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -515,7 +515,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Command timeout!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_setting_command_status_pass(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -542,7 +542,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Session is not authorized!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_set_charge_current_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -557,7 +557,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Setting charge current failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_set_charge_current_wrong_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -573,8 +573,8 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Sending setting command failed. {'data': 'Test issue'}",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
-    @patch("optimshine.shine_api.ApiShine._setting_command_status")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    @patch("optimshine.api_shine.ApiShine._setting_command_status")
     def test_set_charge_current_failed_status(self,
                                               mock_setting_command_status,
                                               mock_api_post_request):
@@ -593,8 +593,8 @@ class TestApiShine(unittest.TestCase):
         self.assertIn("Wrong command status. Setting charge current failed!",
                       stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
-    @patch("optimshine.shine_api.ApiShine._setting_command_status")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    @patch("optimshine.api_shine.ApiShine._setting_command_status")
     def test_set_charge_current_pass(self, mock_setting_command_status,
                                      mock_api_post_request):
         stdio = io.StringIO()
@@ -636,7 +636,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("wrong_value is not supported!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_value_none_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -651,7 +651,7 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Getting device values failed!", stdout)
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_value_wrong_response(self, mock_api_post_request):
         stdio = io.StringIO()
         handler = logging.StreamHandler(stream=stdio)
@@ -669,7 +669,7 @@ class TestApiShine(unittest.TestCase):
             stdout
         )
 
-    @patch("optimshine.common_api.CommonApi.api_post_request")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_get_device_value_pass(self, mock_api_post_request):
         mock_api_post_request.return_value = {"data": {"emsSoc": 68}}
 
