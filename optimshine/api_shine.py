@@ -72,7 +72,7 @@ class ApiShine(ApiCommon):
 
         try:
             self.token = login_response["data"]["token"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(
                 f"Login attempt failed. {login_response}"
             )
@@ -122,7 +122,7 @@ class ApiShine(ApiCommon):
 
         try:
             plants_data = response["data"]["dataList"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting plants list failed. {response}")
             return False
 
@@ -175,7 +175,7 @@ class ApiShine(ApiCommon):
             return False
         try:
             device_data = response["data"]["dataList"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting device list failed. {response}")
             return False
 
@@ -229,7 +229,7 @@ class ApiShine(ApiCommon):
         try:
             pv_data = response["data"]["storageMateDTOS"]
             pv_data_time = response["data"]["dataTime"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting PV data failed. {response}")
             return False
 
@@ -263,7 +263,7 @@ class ApiShine(ApiCommon):
 
         try:
             value_alias = SHINE_SETTING_VALUES[value_name]
-        except KeyError:
+        except (TypeError, KeyError):
             self.log.error(f"{value_name} is not supported!")
             return False
 
@@ -286,7 +286,7 @@ class ApiShine(ApiCommon):
             self.setting_value = (
                 response["data"][value_alias]
             )
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting {value_name} value failed."
                            f" {response}")
             return False
@@ -301,7 +301,7 @@ class ApiShine(ApiCommon):
 
         try:
             value_alias = SHINE_DEVICE_VALUES[value_name]
-        except KeyError:
+        except (TypeError, KeyError):
             self.log.error(f"{value_name} is not supported!")
             return False
 
@@ -325,7 +325,7 @@ class ApiShine(ApiCommon):
             self.device_value = (
                 response["data"][value_alias]
             )
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting {value_name} value failed."
                            f" {response}")
             return False
@@ -354,7 +354,7 @@ class ApiShine(ApiCommon):
                 return False
             try:
                 command_status = response["data"]["result"]
-            except TypeError:
+            except (TypeError, KeyError):
                 self.log.error(f"Checking command status failed."
                                f" {response}")
                 return False
@@ -409,7 +409,7 @@ class ApiShine(ApiCommon):
             return False
         try:
             command_id = response["data"][0]["id"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Sending setting command failed."
                            f" {response}")
             return False
