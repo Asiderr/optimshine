@@ -160,11 +160,15 @@ class TestApiShine(unittest.TestCase):
             {"data": {"dataList": [
                 {
                     "plantName": "plant1",
-                    "id": "111"
+                    "id": "111",
+                    "longitude": "00.000000",
+                    "latitude": "00.000000",
                 },
                 {
                     "plantName": "plant2",
-                    "id": "222"
+                    "id": "222",
+                    "longitude": "11.000000",
+                    "latitude": "11.000000",
                 },
             ]}}
         )
@@ -175,8 +179,11 @@ class TestApiShine(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertTrue(hasattr(cls_api_shine, "plants_id"))
-        self.assertEqual(cls_api_shine.plants_id,
-                         {"plant1": "111", "plant2": "222"})
+        self.assertEqual(cls_api_shine.plants_id["plant1"]["id"], '111')
+        self.assertEqual(cls_api_shine.plants_id["plant1"]["latitude"],
+                         '00.000000')
+        self.assertEqual(cls_api_shine.plants_id["plant2"]["longitude"],
+                         '11.000000')
 
     def test_get_device_list_not_authorized(self):
         stdio = io.StringIO()

@@ -133,7 +133,16 @@ class ApiShine(ApiCommon):
         self.plants_id = {}
         for plant in plants_data:
             self.log.debug(f'ID - {plant["plantName"]}: {plant["id"]}')
-            self.plants_id.update({plant["plantName"]: plant["id"]})
+            self.plants_id.update(
+                {
+                    plant["plantName"]: {
+                        "id": plant["id"],
+                        "longitude": plant["longitude"],
+                        "latitude": plant["latitude"],
+                        "timezone": plant["timeZone"],
+                    }
+                }
+            )
 
         self.log.info("Plant list successfully obtained.")
         return True
