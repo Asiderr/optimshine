@@ -87,7 +87,7 @@ class ApiShine(ApiCommon):
             self.log.info("Login attemp was successful.")
             return True
 
-    def _get_plant_list(self):
+    def get_plant_list(self):
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False

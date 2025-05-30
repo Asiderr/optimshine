@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 import colorlog
+import time
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.events import (
+    EVENT_JOB_EXECUTED,
+    EVENT_JOB_ERROR,
+    EVENT_JOB_SUBMITTED,
+    EVENT_JOB_MISSED,
+)
 from dotenv import load_dotenv, find_dotenv
+from signal import signal, SIGINT, SIGTERM
 
 
 class OptimConfig:
@@ -10,9 +20,10 @@ class OptimConfig:
             "%(asctime)s [%(levelname)s] - %(log_color)s%(message)s%(reset)s",
             log_colors={
                 "DEBUG": "cyan",
-                "INFO": "blue",
+                "INFO": "green",
                 "WARNING": "yellow",
-                "ERROR": "bold_red",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
             }
         ))
 
@@ -31,3 +42,50 @@ class OptimConfig:
 
         load_dotenv(envpath)
         return True
+
+    def _job_running_listener(self, event):
+        if event.job_id in self.missed_jobs:
+            self.missed_jobs.discard(event.job_id)
+        else:
+            self.running_jobs.add(event.job_id)
+
+    def _job_missed_listener(self, event):
+        # Prevent race condition between submitting and missing events
+        if event.job_id not in self.running_jobs:
+            self.missed_jobs.add(event.job_id)
+        else:
+            self.running_jobs.discard(event.job_id)
+
+    def _job_finished_listener(self, event):
+        self.running_jobs.discard(event.job_id)
+
+    def _job_error_listener(self, event):
+        self.running_jobs.discard(event.job_id)
+        self.log.error(f"{event.job_id} job finished with error.")
+
+    def _signal_handler(self, signum, _):
+        self.log.warning("OS signal caught, scheduler shutdown requested")
+        if self.running_jobs:
+            self.log.warning(
+                f"Finishing currently running jobs: {self.running_jobs}"
+            )
+            while self.running_jobs:
+                time.sleep(5)
+        self.scheduler.shutdown()
+        self.log.info("Scheduler shutdown was successful, exiting")
+        exit(0)
+
+    def scheduler_setup(self):
+        self.scheduler = BackgroundScheduler()
+        self.running_jobs = set()
+        self.missed_jobs = set()
+        self.scheduler.add_listener(self._job_running_listener,
+                                    EVENT_JOB_SUBMITTED)
+        self.scheduler.add_listener(self._job_missed_listener,
+                                    EVENT_JOB_MISSED)
+        self.scheduler.add_listener(self._job_finished_listener,
+                                    EVENT_JOB_EXECUTED)
+        self.scheduler.add_listener(self._job_error_listener,
+                                    EVENT_JOB_ERROR)
+        signal(SIGINT, self._signal_handler)
+        signal(SIGTERM, self._signal_handler)

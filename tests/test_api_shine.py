@@ -98,7 +98,7 @@ class TestApiShine(unittest.TestCase):
         self.log.addHandler(handler)
 
         cls_api_shine = api.ApiShine(self.log)
-        result = cls_api_shine._get_plant_list()
+        result = cls_api_shine.get_plant_list()
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -113,7 +113,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test_token"
-        result = cls_api_shine._get_plant_list()
+        result = cls_api_shine.get_plant_list()
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -130,7 +130,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test_token"
-        result = cls_api_shine._get_plant_list()
+        result = cls_api_shine.get_plant_list()
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -148,7 +148,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test_token"
-        result = cls_api_shine._get_plant_list()
+        result = cls_api_shine.get_plant_list()
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -163,19 +163,21 @@ class TestApiShine(unittest.TestCase):
                     "id": "111",
                     "longitude": "00.000000",
                     "latitude": "00.000000",
+                    "timeZone": "UTC",
                 },
                 {
                     "plantName": "plant2",
                     "id": "222",
                     "longitude": "11.000000",
                     "latitude": "11.000000",
+                    "timeZone": "Europe/Warsaw",
                 },
             ]}}
         )
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test_token"
-        result = cls_api_shine._get_plant_list()
+        result = cls_api_shine.get_plant_list()
 
         self.assertTrue(result)
         self.assertTrue(hasattr(cls_api_shine, "plants_id"))
@@ -184,6 +186,8 @@ class TestApiShine(unittest.TestCase):
                          '00.000000')
         self.assertEqual(cls_api_shine.plants_id["plant2"]["longitude"],
                          '11.000000')
+        self.assertEqual(cls_api_shine.plants_id["plant2"]["timezone"],
+                         'Europe/Warsaw')
 
     def test_get_device_list_not_authorized(self):
         stdio = io.StringIO()

@@ -140,7 +140,7 @@ class TestPseApi(unittest.TestCase):
         stdout = stdio.getvalue()
 
         self.assertFalse(status)
-        self.assertIn("Getting device list failed!", stdout)
+        self.assertIn("Getting weather data failed!", stdout)
 
     @patch("optimshine.api_weather.ApiWeather._get_solar_sunrise_sunset_time")
     @patch("optimshine.api_common.ApiCommon.api_post_request")
