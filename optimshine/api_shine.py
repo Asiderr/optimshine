@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import jwt
 import os
 import time
 
@@ -83,9 +84,13 @@ class ApiShine(ApiCommon):
                 "Login attempt failed. Login token not acquired."
             )
             return False
-        else:
-            self.log.info("Login attemp was successful.")
-            return True
+
+        self.token_ttl = jwt.decode(
+            self.token[len("Bearer_"):],
+            options={"verify_signature": False}
+        ).get("exp")
+        self.log.info("Login attemp was successful.")
+        return True
 
     def get_plant_list(self):
         if not hasattr(self, "token"):
@@ -256,7 +261,7 @@ class ApiShine(ApiCommon):
         self.log.info("PV production data successfully obtained.")
         return True
 
-    def _get_setting_value(self, inverter_serial_number, value_name):
+    def get_setting_value(self, inverter_serial_number, value_name):
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -294,7 +299,7 @@ class ApiShine(ApiCommon):
         self.log.info(f"{value_name} value successfully obtained.")
         return True
 
-    def _get_device_value(self, inverter_serial_number, value_name):
+    def get_device_value(self, inverter_serial_number, value_name):
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -371,7 +376,8 @@ class ApiShine(ApiCommon):
             self.log.error("Session is not authorized!")
             return False
 
-        current_formated = str(10*current)
+        current_formated = str(float(current))
+        self.log.debug(f"Current value to set: {current_formated}")
         timestamp_ms = int(datetime.datetime.now().timestamp() * 1000)
         settings_url = self._get_shine_api_url("setting_command")
 
