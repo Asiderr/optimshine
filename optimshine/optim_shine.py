@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import time
 import sdnotify
 
@@ -38,16 +39,16 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.info("Trying to login to Shine API")
         if not self.login_shine():
             self.log.critical("Failed to login to Shine API. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         self.log.info("Trying to get plant list")
         if not self.get_plant_list():
             self.log.critical("Getting plant list failed. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         if not self.plants_id:
             self.log.critical("Plants list is empty. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         shine_plant = os.getenv("SHINE_PLANT")
 
@@ -58,22 +59,22 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
                 self.log.critical(f"{shine_plant} not found in the plant "
                                   "list. Check your plant name in Monitoring->"
                                   "Plant. Exiting...")
-                exit(1)
+                sys.exit(1)
         elif not shine_plant and len(self.plants_id) == 1:
             self.plant = next(iter(self.plants_id.values()))
         else:
             self.log.critical("You must set SHINE_PLANT if you have more than"
                               " one plant. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         self.log.info("Trying to get inverter list")
         if not self._get_device_list(self.plant["id"], "INV"):
             self.log.critical("Failed to get list of inverters. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         if not self.device_list:
             self.log.critical("No inverters found. Exiting...")
-            exit(1)
+            sys.exit(1)
 
         self.inverters = self.device_list.copy()
         self.device_list = None
@@ -384,12 +385,11 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         )
         self.scheduler.start()
 
-        while True:
-            if (not self.scheduler.get_jobs() and not self.running_jobs):
-                self.log.critical("No jobs scheduled. Exiting...")
-                exit(1)
+        while self.scheduler.get_jobs() or self.running_jobs:
             self.notifier.notify("WATCHDOG=1")
             time.sleep(5)
+        self.log.critical("No jobs scheduled. Exiting...")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

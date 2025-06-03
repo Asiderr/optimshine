@@ -1,6 +1,5 @@
 import datetime
 import io
-import json
 import unittest
 import logging
 
