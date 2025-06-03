@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import colorlog
+import sys
 import time
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -61,10 +62,11 @@ class OptimConfig:
 
     def _job_error_listener(self, event):
         self.running_jobs.discard(event.job_id)
-        self.log.error(f"{event.job_id} job finished with error.")
+        self.log.error(f"{event.job_id} job finished with error")
 
     def _signal_handler(self, signum, _):
-        self.log.warning("OS signal caught, scheduler shutdown requested")
+        self.log.warning(f"OS signal caught (num: {signum}), scheduler "
+                         "shutdown requested")
         if self.running_jobs:
             self.log.warning(
                 f"Finishing currently running jobs: {self.running_jobs}"
@@ -73,7 +75,7 @@ class OptimConfig:
                 time.sleep(5)
         self.scheduler.shutdown()
         self.log.info("Scheduler shutdown was successful, exiting")
-        exit(0)
+        sys.exit(0)
 
     def scheduler_setup(self):
         self.scheduler = BackgroundScheduler()
