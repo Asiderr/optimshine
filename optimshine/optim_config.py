@@ -89,3 +89,20 @@ class OptimConfig:
                                     EVENT_JOB_ERROR)
         signal(SIGINT, self._signal_handler)
         signal(SIGTERM, self._signal_handler)
+
+    def scheduler_list_jobs(self):
+        if not hasattr(self, "scheduler"):
+            self.log.error("Scheduler not initialized")
+            self.log.warning("Cannot list scheduled jobs")
+            return
+
+        jobs = self.scheduler.get_jobs()
+
+        if not jobs:
+            self.log.warning("No scheduled jobs")
+            return
+
+        self.log.debug("----------- List of jobs ------------")
+        for job in jobs:
+            self.log.debug(f"Job ID: {job.id}, Next run: {job.next_run_time}")
+        self.log.debug("-------------------------------------")
