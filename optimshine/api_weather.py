@@ -116,18 +116,19 @@ class ApiWeather(ApiCommon):
             self.log.info("Weather data obtained successfully")
             return True
 
-        first_sample = (sunrise_hour_ts - first_sample_time)/interval
-        if int(first_sample) != first_sample:
-            self.log.error("Sample number must be integer!")
+        if not (sunrise_hour_ts % interval ==
+                sunset_hour_ts % interval ==
+                first_sample_time % interval == 0):
+            self.log.error("Timestamps must be divisible by interval"
+                           " otherwise sample numbers won't be correct")
             return False
 
+        # Amount of hours from the beginning of the forecast
+        first_sample = (sunrise_hour_ts - first_sample_time)/interval
         first_sample = int(first_sample)
         self.log.debug(f"First sample: {first_sample}")
 
         last_sample = (sunset_hour_ts - first_sample_time)/interval
-        if int(last_sample) != last_sample:
-            self.log.error("Sample number must be integer!")
-            return False
         last_sample = int(last_sample)
         self.log.debug(f"Last sample: {last_sample}")
 
