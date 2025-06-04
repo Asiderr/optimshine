@@ -14,7 +14,7 @@ from apscheduler.events import (
 from logging import RootLogger
 from unittest.mock import call, Mock, MagicMock, patch
 from optimshine.optim_config import OptimConfig
-from signal import signal, SIGINT, SIGTERM
+from signal import SIGINT, SIGTERM
 
 
 class TestOptimConfig(unittest.TestCase):
