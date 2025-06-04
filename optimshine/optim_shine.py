@@ -303,6 +303,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
                         "mode": "slow_charge",
                     }
                 )
+        self.log.info("Setting optimization strategy was successful")
         return True
 
     def optim_judge(self):
@@ -389,10 +390,12 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         while self.scheduler.get_jobs() or self.running_jobs:
             self.notifier.notify("WATCHDOG=1")
             time.sleep(5)
+
+        self.scheduler.shutdown()
         self.log.critical("No jobs scheduled. Exiting...")
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     cls_optim = OptimShine()
     cls_optim.optim_main()
