@@ -7,6 +7,7 @@ import optimshine.api_shine as api
 import optimshine.optim_config as config
 import tests.test_api_shine_data as api_data
 
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 
@@ -19,6 +20,19 @@ class TestApiShine(unittest.TestCase):
 
     def tearDown(self):
         self.log.handlers.clear()
+
+    def test_get_shine_api_url_wrong_endpoint(self):
+        stdio = io.StringIO()
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+        cls_api_shine = api.ApiShine(self.log)
+
+        result = cls_api_shine._get_shine_api_url("wrong_endpoint")
+
+        stdout = stdio.getvalue()
+
+        self.assertIsNone(result)
+        self.assertIn("wrong_endpoint API endpoint not found!", stdout)
 
     @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_user_login(self, mock_api_post_request):
@@ -51,6 +65,41 @@ class TestApiShine(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("Login attempt failed. {'data': 'Wrong password'}",
                       stdout)
+
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    def test_user_login_empty_token(self, mock_api_post_request):
+        mock_api_post_request.return_value = (
+            {"data": {"token": None}}
+        )
+        stdio = io.StringIO()
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+        cls_api_shine = api.ApiShine(self.log)
+        result = cls_api_shine.login_shine()
+        stdout = stdio.getvalue()
+
+        self.assertTrue(hasattr(cls_api_shine, "token"))
+        self.assertIsNone(cls_api_shine.token)
+        self.assertIn("Login token not acquired.", stdout)
+        self.assertFalse(result)
+
+    @patch("optimshine.api_shine.datetime")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    def test_user_login_max_ttl(self, mock_api_post_request, mock_datatime):
+        mock_api_post_request.return_value = (
+            {"data": {"token": api_data.test_token}}
+        )
+        mock_now = datetime.fromtimestamp(1748987050) - timedelta(days=1,
+                                                                  hours=1)
+        mock_datatime.datetime.now.return_value = mock_now
+        excepted_ttl_ts = (mock_now + timedelta(days=1)).timestamp()
+        cls_api_shine = api.ApiShine(self.log)
+        result = cls_api_shine.login_shine()
+        self.assertTrue(hasattr(cls_api_shine, "token"))
+        self.assertEqual(cls_api_shine.token, api_data.test_token)
+        self.assertTrue(hasattr(cls_api_shine, "token_ttl"))
+        self.assertEqual(cls_api_shine.token_ttl, excepted_ttl_ts)
+        self.assertTrue(result)
 
     @patch("optimshine.api_common.ApiCommon.api_post_request")
     def test_user_login_api_request_failed(self, mock_api_post_request):
@@ -297,7 +346,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = api_data.test_token
-        result = cls_api_shine._get_pv_production_data("test", "test")
+        result = cls_api_shine._get_pv_production_data("test")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
