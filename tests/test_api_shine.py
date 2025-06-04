@@ -31,7 +31,7 @@ class TestApiShine(unittest.TestCase):
         self.assertTrue(hasattr(cls_api_shine, "token"))
         self.assertEqual(cls_api_shine.token, api_data.test_token)
         self.assertTrue(hasattr(cls_api_shine, "token_ttl"))
-        self.assertEqual(cls_api_shine.token_ttl, 1749377263)
+        self.assertEqual(cls_api_shine.token_ttl, 1748987050)
         self.assertTrue(result)
 
     @patch("optimshine.api_common.ApiCommon.api_post_request")

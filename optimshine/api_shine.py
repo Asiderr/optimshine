@@ -89,6 +89,12 @@ class ApiShine(ApiCommon):
             self.token[len("Bearer_"):],
             options={"verify_signature": False}
         ).get("exp")
+
+        # Max token time to live shouldn't be longer than 24h
+        max_ttl = int(datetime.datetime.now().timestamp()) + 86400
+        if max_ttl < self.token_ttl:
+            self.token_ttl = max_ttl
+
         self.log.info("Login attemp was successful.")
         return True
 
