@@ -1,3 +1,10 @@
+# This file contains environment variables for the test environment.
+#
+# Environment Variables:
+# TESTVAR: A variable used for testing purposes.
+# SHINE_USER: The username for accessing the SHINE system.
+# SHINE_PASSWORD: The password for the SHINE user.
+# SHINE_PLANT: The plant identifier for the SHINE system.
 TESTVAR=test
 SHINE_USER=test_user
 SHINE_PASSWORD=test_password

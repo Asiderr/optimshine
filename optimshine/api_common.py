@@ -13,10 +13,31 @@ HEADERS = {
 
 
 class ApiCommon:
+    """
+    A class to handle common API operations such as sending POST and
+    GET requests.
+    """
     def __init__(self, log: RootLogger):
         self.log = log
 
     def api_post_request(self, api_url, request, token=None):
+        """
+        Sends a POST request to the specified API URL with the given
+        request data.
+
+        Args:
+            api_url (str): The URL of the API endpoint to send the
+                           request to.
+            request (dict): The JSON data to be sent in the request body.
+            token (str, optional): An optional authorization token to
+                                   include in the request headers.
+
+        Returns:
+            dict or None: The JSON response from the API if the request
+                          is successful (status code 200), or None if
+                          the request fails or the response cannot
+                          be decoded.
+        """
         headers = HEADERS.copy()
         if token:
             headers.update({"Authorization": token})
@@ -41,6 +62,20 @@ class ApiCommon:
             return None
 
     def api_get_request(self, api_url):
+        """
+        Sends a GET request to the specified API URL and returns
+        the JSON response.
+
+        Args:
+            api_url (str): The URL of the API endpoint to send the GET
+                           request to.
+
+        Returns:
+            dict or None: The JSON response from the API if the request is
+                          successful and the response can be decoded,
+                          None if the request fails or the response cannot
+                          be decoded.
+        """
         headers = HEADERS.copy()
         response = requests.get(
             api_url,
@@ -62,6 +97,20 @@ class ApiCommon:
             return None
 
     def get_request_time(self, delta=None, future=False):
+        """
+        Get the current time adjusted by a specified delta.
+
+        Args:
+            delta (datetime.timedelta, optional): The time delta to adjust the
+                                                  current time.
+            future (bool, optional): If True, adds the delta to the current
+                                     time; if False, subtracts the delta from
+                                     the current time.
+
+        Returns:
+            str: The formatted current time as a string in
+                 "YYYY-MM-DD HH:MM:SS" format.
+        """
         if not delta:
             now = datetime.datetime.now()
         elif future:

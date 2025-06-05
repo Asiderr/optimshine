@@ -23,6 +23,11 @@ CHARGE_MODES = {
 
 
 class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
+    """
+    OptimShine is a class that manages the optimization of battery charging
+    based on various factors such as weather conditions, plant data, and
+    pricing information.
+    """
     def __init__(self, envpath='.env'):
         self.judge_date: datetime = None
         self.soc_check_date: datetime = None
@@ -36,6 +41,13 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.scheduler_setup()
 
     def _shine_setup(self):
+        """
+        Sets up the connection to the Shine API and retrieves the list of
+        inverters for the selected plant.
+
+        Exits the program with a critical error message if any of the steps
+        fail.
+        """
         self.log.info("Trying to login to Shine API")
         if not self.login_shine():
             self.log.critical("Failed to login to Shine API. Exiting...")
@@ -68,7 +80,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             sys.exit(1)
 
         self.log.info("Trying to get inverter list")
-        if not self._get_device_list(self.plant["id"], "INV"):
+        if not self.get_device_list(self.plant["id"], "INV"):
             self.log.critical("Failed to get list of inverters. Exiting...")
             sys.exit(1)
 
@@ -81,6 +93,20 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.info("API Shine setup was successful")
 
     def _check_weather(self, latitude, longitude, date):
+        """
+        Checks the weather conditions for a given latitude, longitude,
+        and date.
+
+        Args:
+            latitude (float): The latitude of the location to check.
+            longitude (float): The longitude of the location to check.
+            date (str): The date for which to check the weather,
+                        in YYYY-MM-DD format.
+
+        Returns:
+            bool: True if the weather data is available and processed,
+                  otherwise False.
+        """
         self.not_cloudy = False
         not_cloudy_hours = 0
 
@@ -98,6 +124,14 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         return True
 
     def _get_judge_factors(self):
+        """
+        Retrieves judge factors based on plant information and weather data and
+        RCE energy prices.
+
+        Returns:
+            bool: True if the judge factors are successfully obtained,
+                  False otherwise.
+        """
         if not hasattr(self, "plant"):
             self.log.error("No plant info available")
             return False
@@ -123,7 +157,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
                 time = datetime.strptime(quarter, "%Y-%m-%d %H:%M:%S").replace(
                     tzinfo=ZoneInfo("Europe/Warsaw")
                 ).astimezone(ZoneInfo("UTC"))
-                self.min_price_timestamp = self._get_timestamp_hour(
+                self.min_price_timestamp = self.get_timestamp_hour(
                     time.strftime("%Y-%m-%d"),
                     time.strftime("%I:%M:%S %p")
                 )
@@ -136,6 +170,23 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         return True
 
     def optim_charge_battery(self, inverter, mode):
+        """
+        Optimizes the battery charging current based on the specified mode.
+
+        Args:
+            inverter (object): The inverter object to interact with.
+            mode (str): The charging mode to apply, which determines the target
+                        charge current.
+
+        Returns:
+            bool: True if the battery charging optimization was successful,
+                  False otherwise.
+
+        Raises:
+            RuntimeError: If there is an issue with authorization, getting
+                          settings, or setting the charge current.
+            AttributeError: If the provided mode is unknown.
+        """
         time_now = datetime.now().timestamp()
         self.log.debug("Checking if token is valid")
         if self.token_ttl < time_now and not self.login_shine():
@@ -190,8 +241,20 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
 
     def optim_soc_check(self, inverter):
         """
-        if less than 50% > charge current 30A + check soc in 30 min,
-        if more charge current 1A (no charge)"
+        Checks the state of charge (SOC) of the battery connected to the
+        specified inverter. If the SOC is below 50%, it initiates a slow
+        charge. If the SOC is sufficient, it sets the battery to no charge
+        mode and prepares for optimization.
+        Args:
+            inverter (str): The identifier for the inverter to check.
+
+        Returns:
+            bool: True if the battery is ready for optimization or if the SOC
+                   check was successfully scheduled.
+
+        Raises:
+            RuntimeError: If there is an issue with authorization, or if
+                          retrieving the battery state of charge fails.
         """
         time_now = datetime.now().timestamp()
         self.log.debug("Checking if token is valid")
@@ -234,6 +297,18 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         return True
 
     def _optim_strategy(self):
+        """
+        Determines and sets the optimization strategy for battery charging
+        based on various conditions such as optimization status, dates,
+        minimum price, and inverter availability. It schedules jobs for
+        optimizing state of charge (SOC) checks and battery charging based
+        on the current time and weather data.
+
+        Returns:
+            bool: True if the optimization strategy was set successfully or
+                  if optimization is not needed, False if there are issues
+                  with the optimization parameters.
+        """
         if not self.optim:
             self.log.info("Optimization not needed")
             return True
@@ -307,6 +382,14 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         return True
 
     def optim_judge(self):
+        """
+        Evaluates weather data and energy prices to determine
+        the optimization strategy.
+
+        Raises:
+            RuntimeError: If judge factors retrieval or optimization
+                          strategy setup fails.
+        """
         self.log.info("Getting weather data and energy prices")
         if not self._get_judge_factors():
             self.log.warning("Failed to get judge factors")
@@ -368,6 +451,12 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.scheduler_list_jobs()
 
     def optim_main(self):
+        """
+        Main function to set up and schedule the optimization judge.
+
+        Raises:
+            SystemExit: Exits the program if no jobs are scheduled.
+        """
         self._shine_setup()
 
         time_now = datetime.now().astimezone(ZoneInfo("UTC"))

@@ -21,8 +21,8 @@ class TestPseApi(unittest.TestCase):
 
     def test_get_timestamp_hour(self):
         cls_api_weather = api.ApiWeather(self.log)
-        timestamp = cls_api_weather._get_timestamp_hour("2025-04-14",
-                                                        "2:29:54 AM")
+        timestamp = cls_api_weather.get_timestamp_hour("2025-04-14",
+                                                       "2:29:54 AM")
 
         self.assertEqual(timestamp, 1744596000)
 
