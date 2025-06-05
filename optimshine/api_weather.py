@@ -21,9 +21,9 @@ class ApiWeather(ApiCommon):
                                tzinfo=ZoneInfo("UTC"))
         return int(hour.timestamp())
 
-    def _get_solar_sunrise_sunset_time(self, latitiude, longtitude, date):
+    def _get_solar_sunrise_sunset_time(self, latitude, longitude, date):
         sunrise_url = "https://api.sunrise-sunset.org/json?"
-        sunrise_args = f"lat={latitiude}&lng={longtitude}&data={date}"
+        sunrise_args = f"lat={latitude}&lng={longitude}&data={date}"
 
         self.log.debug("Sending sunrise/sunset request to"
                        f" {sunrise_url}{sunrise_args}")
@@ -41,8 +41,8 @@ class ApiWeather(ApiCommon):
         self.log.info("Sunrise/sunset time obtained successfully.")
         return True
 
-    def get_weather_data(self, latitiude, longtitude, date):
-        if not self._get_solar_sunrise_sunset_time(latitiude, longtitude,
+    def get_weather_data(self, latitude, longitude, date):
+        if not self._get_solar_sunrise_sunset_time(latitude, longitude,
                                                    date):
             self.log.error("Error during obtaining sunrise or sunset!")
             return False
@@ -56,7 +56,7 @@ class ApiWeather(ApiCommon):
         # Day ends after 12 AM
         if sunrise_hour_ts > sunset_hour_ts:
             sunset_hour_ts += 86400
-        # One full hour after sunset
+        # First full hour after sunset
         sunset_hour_ts += 3600
         self.log.debug(f"Sunrise timestamp: {sunrise_hour_ts}")
         self.log.debug(f"Sunset timestamp: {sunset_hour_ts}")
@@ -68,8 +68,8 @@ class ApiWeather(ApiCommon):
         weather_data_request = {
             "date": weather_ts,
             "point": {
-                "lat": latitiude,
-                "lon": longtitude
+                "lat": latitude,
+                "lon": longitude
             }
         }
 
@@ -79,7 +79,7 @@ class ApiWeather(ApiCommon):
             weather_data_request
         )
         if not response:
-            self.log.error("Getting device list failed!")
+            self.log.error("Getting weather data failed!")
             return False
         try:
             first_sample_time = int(
@@ -108,6 +108,8 @@ class ApiWeather(ApiCommon):
                 "first_sample_time": first_sample_time,
                 "interval": interval,
                 "low_clouds_data": low_clouds_data[:24],
+                "sunrise_time": sunrise_hour_ts,
+                "sunset_time": sunset_hour_ts,
             }
             self.log.info("Weather data obtained successfully")
             return True
@@ -136,6 +138,8 @@ class ApiWeather(ApiCommon):
                 "first_sample_time": sunrise_hour_ts,
                 "interval": interval,
                 "low_clouds_data": striped_cloud_data,
+                "sunrise_time": sunrise_hour_ts,
+                "sunset_time": sunset_hour_ts,
             }
         self.log.info("Weather data obtained successfully")
         return True

@@ -91,8 +91,8 @@ class TestPseApi(unittest.TestCase):
                 },
             ]
         }
-        expected_data = {
-            "date": "2025-05-14",
+        expected_date = "2025-05-14"
+        expected_prices = {
             "2025-05-14 00:15:00": 439.58,
             "2025-05-14 00:30:00": 449.58,
             "2025-05-14 00:45:00": 459.58,
@@ -102,8 +102,10 @@ class TestPseApi(unittest.TestCase):
         status = cls_api_pse.get_pse_data("2025-05-14")
 
         self.assertTrue(status)
-        self.assertTrue(hasattr(cls_api_pse, "rce_data"))
-        self.assertEqual(expected_data, cls_api_pse.rce_data)
+        self.assertTrue(hasattr(cls_api_pse, "rce_date"))
+        self.assertEqual(expected_date, cls_api_pse.rce_date)
+        self.assertTrue(hasattr(cls_api_pse, "rce_prices"))
+        self.assertEqual(expected_prices, cls_api_pse.rce_prices)
 
 
 if __name__ == "__main__":
