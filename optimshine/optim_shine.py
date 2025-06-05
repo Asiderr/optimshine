@@ -2,6 +2,7 @@
 
 import os
 import time
+import sdnotify
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -14,7 +15,7 @@ from optimshine.optim_config import OptimConfig
 
 CHARGE_MODES = {
     "no_charge": 1,
-    "slow_charge": 40,
+    "slow_charge": 30,
     "normal_charge": 60,
     "fast_charge": 90,
 }
@@ -27,6 +28,8 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.optim = False
         self.optim_date: datetime = None
 
+        self.notifier = sdnotify.SystemdNotifier()
+        self.notifier.notify("READY=1")
         self.logger_setup()
         self.envs_setup()
         self.scheduler_setup()
@@ -130,15 +133,100 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.info("Successfully obtained judge factors")
         return True
 
+    def optim_charge_battery(self, inverter, mode):
+        time_now = datetime.now().timestamp()
+        self.log.debug("Checking if token is valid")
+        if self.token_ttl < time_now and not self.login_shine():
+            self.log.error("Authorization token has expired. "
+                           "Failed to login to Shine API")
+            raise RuntimeError
+
+        self.log.debug(f"Battery charging mode: {mode}")
+        try:
+            target_charge_current = CHARGE_MODES[mode]
+        except KeyError:
+            self.log.error(f"{mode} charge mode unknown")
+            raise RuntimeError
+
+        self.log.debug("Getting battery charge current value")
+        if not self.get_setting_value(inverter, "battery_charge_current"):
+            self.log.error("Getting battery charge current failed")
+            raise RuntimeError
+
+        setting_charge_current = self.setting_value/10
+        self.setting_value = None
+        self.log.debug("Battery charge current value: "
+                       f"{setting_charge_current} A")
+
+        if setting_charge_current == target_charge_current:
+            self.log.info("Correct charge current value is already set. "
+                          "Battery charging optimization was successful")
+            return True
+
+        if not self.set_charge_current(inverter, target_charge_current):
+            self.log.error("Failed to set battery charge current")
+            raise RuntimeError
+
+        if not self.get_setting_value(inverter, "battery_charge_current"):
+            self.log.error("Getting battery charge current failed "
+                           "(Validation)")
+            raise RuntimeError
+
+        setting_charge_current = self.setting_value/10
+        self.setting_value = None
+        self.log.debug("Battery charge current value: "
+                       f"{setting_charge_current} A")
+
+        if not setting_charge_current == target_charge_current:
+            self.log.error("Failed to set battery charge current. "
+                           "Wrong current value")
+            raise RuntimeError
+        self.log.info("Battery charging optimization was successful")
+        return True
+
     def optim_soc_check(self, inverter):
         """
-        if less than 50% > charge current 40A + check soc in 30 min,
+        if less than 50% > charge current 30A + check soc in 30 min,
         if more charge current 1A (no charge)"
         """
-        pass
+        time_now = datetime.now().timestamp()
+        self.log.debug("Checking if token is valid")
+        if self.token_ttl < time_now and not self.login_shine():
+            self.log.error("Authorization token has expired. "
+                           "Failed to login to Shine API")
+            raise RuntimeError
 
-    def optim_charge_battery(self, inverter, end_of_day=False):
-        pass
+        self.log.debug("Getting battery state of charge")
+        if not self._get_device_value(inverter, "battery_soc"):
+            self.log.error("Getting battery state of charge failed")
+            raise RuntimeError
+
+        soc_value = float(self.device_value)
+        self.device_value = None
+        self.log.debug(f"Battery SOC: {soc_value}%")
+
+        if soc_value < 50:
+            self.log.info("Battery needs to be charge before optimization.")
+            self.optim_charge_battery(inverter, "slow_charge")
+        else:
+            self.optim_charge_battery(inverter, "no_charge")
+            self.log.info("Battery is ready for optimization. "
+                          "No charge mode set")
+            return True
+
+        self.log.info("Scheduling next soc check in 30 minutes")
+        next_soc_check_date = time_now + 1800
+        if next_soc_check_date < (self.optim_date.timestamp()-180):
+            self.soc_check_date = next_soc_check_date
+            self.scheduler.add_job(
+                self.optim_soc_check,
+                trigger="date",
+                run_date=self.soc_check_date,
+                id=f"optim_soc_check_inv_{inverter}",
+                replace_existing=True,
+                kwargs={"inverter": inverter}
+            )
+        return True
 
     def _optim_strategy(self):
         if not self.optim:
@@ -149,9 +237,18 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             self.log.error("Optimization dates not set")
             return False
 
+        if not self.min_price:
+            self.log.error("RCE minimal price price not set")
+            return False
+
         if not hasattr(self, "inverters") or not self.inverters:
             self.log.error("No inverter list found")
             return False
+
+        if self.min_price < 0:
+            charging_mode = "fast_charge"
+        else:
+            charging_mode = "normal_charge"
 
         time_now = datetime.now().timestamp()
         if time_now > self.optim_date.timestamp():
@@ -166,28 +263,42 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
                                    timedelta(seconds=30))
 
         for inverter in self.inverters:
+            self.log.info("Setting optimization strategy for inverter nr"
+                          f" {inverter}")
             if not (self.soc_check_date.timestamp() >
-                    self.optim_date.timestamp()):
+                    (self.optim_date.timestamp()-180)):
                 self.scheduler.add_job(
                     self.optim_soc_check,
                     trigger="date",
                     run_date=self.soc_check_date,
-                    id=f"soc_check_date_sn{inverter}",
+                    id=f"optim_soc_check_inv_{inverter}",
                     replace_existing=True,
                     kwargs={"inverter": inverter}
                 )
             self.scheduler.add_job(
-                self.optim_soc_check,
+                self.optim_charge_battery,
                 trigger="date",
                 run_date=self.optim_date,
-                id=f"soc_check_date_sn{inverter}",
+                id=f"optim_charge_battery_inv_{inverter}",
                 replace_existing=True,
-                kwargs={"inverter": inverter}
+                kwargs={"inverter": inverter, "mode": charging_mode}
             )
-
-        for inverter in self.inverters:
-            self.log.info("Setting optimization strategy for inverter nr"
-                          f" {inverter}")
+            if not (self.weather_data["sunrise_time"] >=
+                    self.weather_data["sunset_time"]):
+                self.scheduler.add_job(
+                    self.optim_charge_battery,
+                    trigger="date",
+                    run_date=datetime.fromtimestamp(
+                        self.weather_data["sunset_time"]
+                    ),
+                    id=f"eod_charge_battery_inv_{inverter}",
+                    replace_existing=True,
+                    kwargs={
+                        "inverter": inverter,
+                        "mode": "slow_charge",
+                    }
+                )
+        return True
 
     def optim_judge(self):
         self.log.info("Getting weather data and energy prices")
@@ -196,7 +307,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             self.judge_date += timedelta(minutes=30)
             self.log.info(
                 "Rescheduling optimization judge to "
-                f"{self.judge_date.strftime('%d:%m:%Y %H:%M')}"
+                f"{self.judge_date.strftime('%d-%m-%Y %H:%M')}"
             )
             self.scheduler.add_job(
                 self.optim_judge,
@@ -207,7 +318,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             raise RuntimeError
 
         if self.judge_date.timestamp() > self.weather_data["sunrise_time"]:
-            self.soc_check_date = self.judge_date + timedelta(minutes=1)
+            self.soc_check_date = self.judge_date + timedelta(minutes=2)
         else:
             self.soc_check_date = datetime.fromtimestamp(
                 self.weather_data["sunrise_time"]
@@ -273,4 +384,10 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             if (not self.scheduler.get_jobs() and not self.running_jobs):
                 self.log.critical("No jobs scheduled. Exiting...")
                 exit(1)
+            self.notifier.notify("WATCHDOG=1")
             time.sleep(5)
+
+
+if __name__ == "__main__":
+    cls_optim = OptimShine()
+    cls_optim.optim_main()
