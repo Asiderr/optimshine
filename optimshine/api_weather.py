@@ -57,7 +57,7 @@ class ApiWeather(ApiCommon):
                   obtained, False otherwise.
         """
         sunrise_url = "https://api.sunrise-sunset.org/json?"
-        sunrise_args = f"lat={latitude}&lng={longitude}&data={date}"
+        sunrise_args = f"lat={latitude}&lng={longitude}&date={date}"
 
         self.log.debug("Sending sunrise/sunset request to"
                        f" {sunrise_url}{sunrise_args}")
