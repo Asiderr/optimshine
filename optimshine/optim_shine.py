@@ -23,7 +23,7 @@ CHARGE_MODES = {
 
 
 class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
-    def __init__(self):
+    def __init__(self, envpath='.env'):
         self.judge_date: datetime = None
         self.soc_check_date: datetime = None
         self.optim = False
@@ -32,7 +32,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.notifier = sdnotify.SystemdNotifier()
         self.notifier.notify("READY=1")
         self.logger_setup()
-        self.envs_setup()
+        self.envs_setup(envpath=envpath)
         self.scheduler_setup()
 
     def _shine_setup(self):
@@ -55,7 +55,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         if shine_plant:
             try:
                 self.plant = self.plants_id[shine_plant]
-            except KeyError:
+            except (KeyError, TypeError):
                 self.log.critical(f"{shine_plant} not found in the plant "
                                   "list. Check your plant name in Monitoring->"
                                   "Plant. Exiting...")
@@ -78,6 +78,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
 
         self.inverters = self.device_list.copy()
         self.device_list = None
+        self.log.info("API Shine setup was successful")
 
     def _check_weather(self, latitude, longitude, date):
         self.not_cloudy = False
@@ -145,7 +146,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.debug(f"Battery charging mode: {mode}")
         try:
             target_charge_current = CHARGE_MODES[mode]
-        except KeyError:
+        except (KeyError, TypeError):
             self.log.error(f"{mode} charge mode unknown")
             raise AttributeError
 
@@ -209,7 +210,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.debug(f"Battery SOC: {soc_value}%")
 
         if soc_value < 50:
-            self.log.info("Battery needs to be charge before optimization.")
+            self.log.info("Battery needs to be charge before optimization")
             self.optim_charge_battery(inverter, "slow_charge")
         else:
             self.optim_charge_battery(inverter, "no_charge")
@@ -220,7 +221,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         self.log.info("Scheduling next soc check in 30 minutes")
         next_soc_check_date = time_now + 1800
         if next_soc_check_date < (self.optim_date.timestamp()-180):
-            self.soc_check_date = next_soc_check_date
+            self.soc_check_date = datetime.fromtimestamp(next_soc_check_date)
             self.scheduler.add_job(
                 self.optim_soc_check,
                 trigger="date",
