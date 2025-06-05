@@ -25,7 +25,7 @@ from signal import SIGINT, SIGTERM
 
 
 class TestOptimConfig(unittest.TestCase):
-    def test_loger_setup(self):
+    def test_logger_setup(self):
         cl = OptimConfig()
         cl.logger_setup()
         self.assertTrue(isinstance(cl.log, RootLogger),
