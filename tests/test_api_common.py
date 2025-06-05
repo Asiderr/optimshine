@@ -1,5 +1,6 @@
 import datetime
 import io
+import json
 import unittest
 import logging
 
@@ -7,6 +8,7 @@ import optimshine.api_common as api
 import optimshine.optim_config as config
 
 from freezegun import freeze_time
+from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 from unittest.mock import patch
 
 
@@ -34,6 +36,29 @@ class TestApiShine(unittest.TestCase):
             "test_token"
         )
         self.assertEqual(response, {"data": "Success"})
+
+    @patch("requests.post")
+    def test_api_post_request_wrong_json_response(self, mock_post):
+        stdio = io.StringIO()
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.text = '{},"fstart":"2025-06-03T00:00:00Z"}'
+        mock_post.return_value.json.side_effect = (
+            RequestsJSONDecodeError("Expecting value", "doc", 0)
+        )
+
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+
+        cls_common_api = api.ApiCommon(self.log)
+        response = cls_common_api.api_post_request(
+            "test_url",
+            {"test_request": "request"},
+            "test_token"
+        )
+        stdout = stdio.getvalue()
+        self.assertIsNone(response)
+        self.assertIn("Failed to decode response message. Response: "
+                      f"{mock_post.return_value.text}", stdout)
 
     @patch("requests.post")
     def test_user_login_status_code(self, mock_post):
@@ -64,6 +89,25 @@ class TestApiShine(unittest.TestCase):
         cls_common_api = api.ApiCommon(self.log)
         response = cls_common_api.api_get_request("test_url")
         self.assertEqual(response, {"data": "Success"})
+
+    @patch("requests.get")
+    def test_api_get_request_wrong_json_response(self, mock_get):
+        stdio = io.StringIO()
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.text = '{},"fstart":"2025-06-03T00:00:00Z"}'
+        mock_get.return_value.json.side_effect = (
+            RequestsJSONDecodeError("Expecting value", "doc", 0)
+        )
+
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+
+        cls_common_api = api.ApiCommon(self.log)
+        response = cls_common_api.api_get_request("test_url")
+        stdout = stdio.getvalue()
+        self.assertIsNone(response)
+        self.assertIn("Failed to decode response message. Response: "
+                      f"{mock_get.return_value.text}", stdout)
 
     @patch("requests.get")
     def test_api_get_request_status_code(self, mock_get):

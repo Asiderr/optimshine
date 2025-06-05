@@ -32,7 +32,13 @@ class ApiCommon:
             )
             return None
 
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            self.log.error(
+                f"Failed to decode response message. Response: {response.text}"
+            )
+            return None
 
     def api_get_request(self, api_url):
         headers = HEADERS.copy()
@@ -47,7 +53,13 @@ class ApiCommon:
             )
             return None
 
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            self.log.error(
+                f"Failed to decode response message. Response: {response.text}"
+            )
+            return None
 
     def get_request_time(self, delta=None, future=False):
         if not delta:

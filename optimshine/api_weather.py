@@ -62,6 +62,8 @@ class ApiWeather(ApiCommon):
         self.log.debug(f"Sunset timestamp: {sunset_hour_ts}")
 
         weather_ts = self._get_timestamp_hour(date, "12:00:00 AM")
+        self.log.debug(f"Latitude: {latitude}")
+        self.log.debug(f"Longitude: {longitude}")
         self.log.debug(f"Weather timestamp: {weather_ts}")
 
         weather_data_url = "https://devmgramapi.meteo.pl/meteorograms/um4_60"

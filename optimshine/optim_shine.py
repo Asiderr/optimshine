@@ -103,8 +103,8 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         date = datetime.now().strftime("%Y-%m-%d")
 
         self.log.debug("Trying to get weather data")
-        if not self._check_weather(self.plant["longitude"],
-                                   self.plant["latitude"],
+        if not self._check_weather(self.plant["latitude"],
+                                   self.plant["longitude"],
                                    date):
             self.log.error("Failed to check weather")
             return False
@@ -146,7 +146,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             target_charge_current = CHARGE_MODES[mode]
         except KeyError:
             self.log.error(f"{mode} charge mode unknown")
-            raise RuntimeError
+            raise AttributeError
 
         self.log.debug("Getting battery charge current value")
         if not self.get_setting_value(inverter, "battery_charge_current"):
@@ -161,6 +161,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
         if setting_charge_current == target_charge_current:
             self.log.info("Correct charge current value is already set. "
                           "Battery charging optimization was successful")
+            self.scheduler_list_jobs()
             return True
 
         if not self.set_charge_current(inverter, target_charge_current):
@@ -181,6 +182,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             self.log.error("Failed to set battery charge current. "
                            "Wrong current value")
             raise RuntimeError
+        self.scheduler_list_jobs()
         self.log.info("Battery charging optimization was successful")
         return True
 
@@ -197,7 +199,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             raise RuntimeError
 
         self.log.debug("Getting battery state of charge")
-        if not self._get_device_value(inverter, "battery_soc"):
+        if not self.get_device_value(inverter, "battery_soc"):
             self.log.error("Getting battery state of charge failed")
             raise RuntimeError
 
@@ -226,6 +228,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
                 replace_existing=True,
                 kwargs={"inverter": inverter}
             )
+        self.scheduler_list_jobs()
         return True
 
     def _optim_strategy(self):
@@ -359,6 +362,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             id="optim_judge",
             replace_existing=True
         )
+        self.scheduler_list_jobs()
 
     def optim_main(self):
         self._shine_setup()
@@ -371,7 +375,7 @@ class OptimShine(OptimConfig, ApiPse, ApiShine, ApiWeather):
             self.judge_date += timedelta(days=1)
 
         self.log.info("Scheduling optimization judge to "
-                      f"{self.judge_date.strftime('%d:%m:%Y %H:%M')}")
+                      f"{self.judge_date.strftime('%d-%m-%Y %H:%M')}")
         self.scheduler.add_job(
             self.optim_judge,
             trigger="date",
