@@ -9,9 +9,20 @@ from optimshine.common_api import CommonApi
 SHINE_API_URL = "https://shine-api.felicitysolar.com"
 SHINE_API_ENDPOINTS = {
     "login": "/userlogin",
-    "production_data": "/storageRealtimeData/chart_storageRealtimeData_mate",
     "plant_list": "/plant/list_plant",
-    "device_list": "/device/list_device_all_type"
+    "device_list": "/device/list_device_all_type",
+    "production_data": "/storageRealtimeData/chart_storageRealtimeData_mate",
+    "setting_values": "/deviceCommand/get_command_setting_original_value"
+}
+SHINE_PV_DATA_LABELS = {
+    "pvTotalPower": "PV power generated",
+    "acTtlInpower": "Grid power",
+    "acTotalOutActPower": "Total load",
+    "emsPower": "Battery Power",
+}
+SHINE_SETTING_VALUES = {
+    "battery_charge_current": "bmchc",
+    "battery_discharge_current": "bmdcu",
 }
 
 
@@ -19,8 +30,11 @@ class ApiShine(CommonApi):
     def __init__(self, log: RootLogger):
         self.log = log
 
-    def _get_request_time(self):
-        now = datetime.datetime.now()
+    def _get_request_time(self, delta=None):
+        if not delta:
+            now = datetime.datetime.now()
+        else:
+            now = datetime.datetime.now() - delta
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def _get_shine_api_url(self, endpoint):
@@ -74,6 +88,10 @@ class ApiShine(CommonApi):
             return True
 
     def _get_plant_list(self):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
         plant_url = self._get_shine_api_url("plant_list")
         plant_request = {
           "pageNum": 1,
@@ -98,6 +116,10 @@ class ApiShine(CommonApi):
             plant_request,
             self.token
         )
+        if not response:
+            self.log.error("Getting plant list failed!")
+            return False
+
         try:
             plants_data = response["data"]["dataList"]
         except TypeError:
@@ -108,10 +130,10 @@ class ApiShine(CommonApi):
             self.log.error("No plants available!")
             return False
 
-        self.plants_id = []
+        self.plants_id = {}
         for plant in plants_data:
             self.log.debug(f'ID - {plant["plantName"]}: {plant["id"]}')
-            self.plants_id.append({plant["plantName"]: plant["id"]})
+            self.plants_id.update({plant["plantName"]: plant["id"]})
 
         self.log.info("Plant list successfully obtained.")
         return True
@@ -120,6 +142,10 @@ class ApiShine(CommonApi):
         """
         INV, BP
         """
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
         device_list_url = self._get_shine_api_url("device_list")
         inverter_list_request = {
           "pageNum": 1,
@@ -135,20 +161,126 @@ class ApiShine(CommonApi):
             inverter_list_request,
             self.token
         )
+        if not response:
+            self.log.error("Getting device list failed!")
+            return False
         try:
             device_data = response["data"]["dataList"]
         except TypeError:
-            self.log.error(f"Getting plants list failed. {response['data']}")
+            self.log.error(f"Getting device list failed. {response['data']}")
             return False
 
         if not device_data:
             self.log.error("No devices available!")
             return False
 
-        device_list = []
+        self.device_list = []
         for device in device_data:
             self.log.debug(f'{device_type} Serial Number {device["deviceSn"]}')
-            device_list.append(device["deviceSn"])
+            self.device_list.append(device["deviceSn"])
 
         self.log.info(f"{device_type} list successfully obtained.")
+        return True
+
+    def _get_pv_production_data(self, inverter_serial_number, data_date=None):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
+        if not data_date:
+            data_date = self._get_request_time(datetime.timedelta(days=1))
+
+        production_data_url = self._get_shine_api_url("production_data")
+        get_data_request = {
+          "deviceSn": inverter_serial_number,
+          "chartScope": 0,
+          "chartDrawingType": 0,
+          "chartType": 1,
+          "chartScopeType": 0,
+          "timeDimension": "hour",
+          "dateStr": data_date,
+          "field": [
+                "pvTotalPower",        # Produced PV energy
+                "acTtlInpower",        # Grid Energy
+                "acTotalOutActPower",  # Home Load
+                "emsPower",            # Battery Power
+          ]
+        }
+
+        self.log.debug(f"Sending data request to {production_data_url}")
+        response = self.api_post_request(
+            production_data_url,
+            get_data_request,
+            self.token
+        )
+        if not response:
+            self.log.error("Getting PV data failed!")
+            return False
+
+        try:
+            pv_data = response["data"]["storageMateDTOS"]
+            pv_data_time = response["data"]["dataTime"]
+        except TypeError:
+            self.log.error(f"Getting PV data failed. {response['data']}")
+            return False
+
+        if not pv_data or not pv_data_time:
+            self.log.error("No PV data acquired!")
+            return False
+
+        self.pv_data = {
+            "inverter_sn": inverter_serial_number,
+            "data_date": data_date,
+            "data_time": pv_data_time,
+            "data": {}
+        }
+        for param in pv_data:
+            param_data = {
+                param["field"]: {
+                    "label": SHINE_PV_DATA_LABELS[param["field"]],
+                    "data": param["data"],
+                    "unit": param["unit"],
+                },
+            }
+            self.pv_data["data"].update(param_data)
+
+        self.log.info("PV production data successfully obtained.")
+        return True
+
+    def _get_setting_value(self, inverter_serial_number, value_name):
+        if not hasattr(self, "token"):
+            self.log.error("Session is not authorized!")
+            return False
+
+        try:
+            value_alias = SHINE_SETTING_VALUES[value_name]
+        except KeyError:
+            self.log.error(f"{value_name} is not supported!")
+            return False
+
+        settings_url = self._get_shine_api_url("setting_values")
+        get_settings_request = {
+            "deviceSn": inverter_serial_number,
+            "oldVersion": 1
+        }
+
+        self.log.debug(f"Sending setting values request to {settings_url}")
+        response = self.api_post_request(
+            settings_url,
+            get_settings_request,
+            self.token
+        )
+        if not response:
+            self.log.error("Getting setting values failed!")
+            return False
+        try:
+            self.setting_value = (
+                response["data"][value_alias]
+            )
+        except TypeError:
+            self.log.error(f"Getting {value_name} value failed."
+                           f" {response['data']}")
+            return False
+
+        self.log.info(f"{value_name} value successfully obtained.")
         return True
