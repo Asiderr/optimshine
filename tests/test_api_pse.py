@@ -104,3 +104,7 @@ class TestPseApi(unittest.TestCase):
         self.assertTrue(status)
         self.assertTrue(hasattr(cls_api_pse, "rce_data"))
         self.assertEqual(expected_data, cls_api_pse.rce_data)
+
+
+if __name__ == "__main__":
+    unittest.main()
