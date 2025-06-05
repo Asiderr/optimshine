@@ -32,9 +32,9 @@ class ApiWeather(ApiCommon):
             self.log.error("Getting sunrise/sunset data failed!")
             return False
         try:
-            self.sunrise = response["result"]["sunrise"]
-            self.sunset = response["result"]["sunset"]
-        except TypeError:
+            self.sunrise = response["results"]["sunrise"]
+            self.sunset = response["results"]["sunset"]
+        except (TypeError, KeyError):
             self.log.error(f"Getting weather data failed. {response}")
             return False
 
@@ -42,14 +42,28 @@ class ApiWeather(ApiCommon):
         return True
 
     def get_weather_data(self, latitiude, longtitude, date):
-        self._get_solar_sunrise_sunset_time(latitiude, longtitude, date)
+        if not self._get_solar_sunrise_sunset_time(latitiude, longtitude,
+                                                   date):
+            self.log.error("Error during obtaining sunrise or sunset!")
+            return False
+
         if not self.sunrise or not self.sunset:
-            self.log.error("Getting sunrise or sunset time failed")
+            self.log.error("Sunrise or sunset cannot be none!")
             return False
 
         sunrise_hour_ts = self._get_timestamp_hour(date, self.sunrise)
         sunset_hour_ts = self._get_timestamp_hour(date, self.sunset)
+        # Day ends after 12 AM
+        if sunrise_hour_ts > sunset_hour_ts:
+            sunset_hour_ts += 86400
+        # One full hour after sunset
+        sunset_hour_ts += 3600
+        self.log.debug(f"Sunrise timestamp: {sunrise_hour_ts}")
+        self.log.debug(f"Sunset timestamp: {sunset_hour_ts}")
+
         weather_ts = self._get_timestamp_hour(date, "12:00:00 AM")
+        self.log.debug(f"Weather timestamp: {weather_ts}")
+
         weather_data_url = "https://devmgramapi.meteo.pl/meteorograms/um4_60"
         weather_data_request = {
             "date": weather_ts,
@@ -69,12 +83,13 @@ class ApiWeather(ApiCommon):
             return False
         try:
             first_sample_time = int(
-                response["cldlow_aver"]["first_timestamp"]
-            ),
-            interval = response["cldlow_aver"]["interval"],
-            low_clouds_data = response["cldlow_aver"]["data"]
+                response["data"]["cldlow_aver"]["first_timestamp"]
+            )
+            self.log.debug(f"First timestamp: {first_sample_time}")
+            interval = response["data"]["cldlow_aver"]["interval"]
+            low_clouds_data = response["data"]["cldlow_aver"]["data"]
             samples_num = len(low_clouds_data)
-        except TypeError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting weather data failed. {response}")
             return False
 
@@ -87,35 +102,31 @@ class ApiWeather(ApiCommon):
             return False
 
         # Polar night/Polar day
-        if sunrise_hour_ts == sunset_hour_ts:
+        if self.sunrise == self.sunset:
             self.weather_data = {
                 "date": date,
                 "first_sample_time": first_sample_time,
                 "interval": interval,
-                "low_clouds_data": low_clouds_data,
+                "low_clouds_data": low_clouds_data[:24],
             }
             self.log.info("Weather data obtained successfully")
             return True
 
         first_sample = (sunrise_hour_ts - first_sample_time)/interval
+        if int(first_sample) != first_sample:
+            self.log.error("Sample number must be integer!")
+            return False
 
-        # Day ends after 12 AM
-        if sunrise_hour_ts > sunset_hour_ts:
-            samples_num -= first_sample
-            striped_cloud_data = [
-                low_clouds_data[i+first_sample] for i in range(0, samples_num)
-            ]
-            self.weather_data = {
-                "date": date,
-                "first_sample_time": sunrise_hour_ts,
-                "interval": interval,
-                "low_clouds_data": striped_cloud_data,
-            }
-            self.log.info("Weather data obtained successfully")
-            return True
+        first_sample = int(first_sample)
+        self.log.debug(f"First sample: {first_sample}")
 
-        # Day ends before 12 AM
         last_sample = (sunset_hour_ts - first_sample_time)/interval
+        if int(last_sample) != last_sample:
+            self.log.error("Sample number must be integer!")
+            return False
+        last_sample = int(last_sample)
+        self.log.debug(f"Last sample: {last_sample}")
+
         samples_num = last_sample - first_sample
         striped_cloud_data = [
             low_clouds_data[i+first_sample] for i in range(0, samples_num)

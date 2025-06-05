@@ -22,7 +22,7 @@ class ApiPse(ApiCommon):
 
         try:
             response_data = response["value"]
-        except KeyError:
+        except (TypeError, KeyError):
             self.log.error(f"Getting RCE values failed! {response}")
             return False
 
