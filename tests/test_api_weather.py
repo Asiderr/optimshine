@@ -166,8 +166,9 @@ class TestPseApi(unittest.TestCase):
 
     @patch("optimshine.api_weather.ApiWeather._get_solar_sunrise_sunset_time")
     @patch("optimshine.api_common.ApiCommon.api_post_request")
-    def test_get_weather_data_response_(self, mock_api_post_request,
-                                        mock_api_weather):
+    def test_get_weather_data_response_wrong_sunrise(self,
+                                                     mock_api_post_request,
+                                                     mock_api_weather):
         stdio = io.StringIO()
         mock_api_weather.return_value = True
         mock_api_post_request.return_value = {
@@ -192,6 +193,68 @@ class TestPseApi(unittest.TestCase):
 
         self.assertFalse(status)
         self.assertIn("Wrong sunrise time!", stdout)
+
+    @patch("optimshine.api_weather.ApiWeather._get_solar_sunrise_sunset_time")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    def test_get_weather_data_response_none_clouds_data(self,
+                                                        mock_api_post_request,
+                                                        mock_api_weather):
+        stdio = io.StringIO()
+        mock_api_weather.return_value = True
+        mock_api_post_request.return_value = {
+            "data": {
+                "cldlow_aver": {
+                    "first_timestamp": "1747659600",
+                    "interval": 3600,
+                    "data": []
+                }
+            }
+        }
+
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+        cls_api_weather = api.ApiWeather(self.log)
+        cls_api_weather.sunrise = "2:29:57 AM"
+        cls_api_weather.sunset = "6:53:59 PM"
+        status = cls_api_weather.get_weather_data("36.7201600",
+                                                  "-33.86882",
+                                                  "2025-05-20")
+        stdout = stdio.getvalue()
+
+        self.assertFalse(status)
+        self.assertIn("No cloud data available!", stdout)
+
+    @patch("optimshine.api_weather.ApiWeather._get_solar_sunrise_sunset_time")
+    @patch("optimshine.api_common.ApiCommon.api_post_request")
+    def test_get_weather_data_response_non_int_first_sample(
+        self,
+        mock_api_post_request,
+        mock_api_weather
+    ):
+        stdio = io.StringIO()
+        mock_api_weather.return_value = True
+        mock_api_post_request.return_value = {
+            "data": {
+                "cldlow_aver": {
+                    "first_timestamp": "1747659600",
+                    "interval": 3500,
+                    "data": [12.1, 11.725, 11.475]
+                }
+            }
+        }
+
+        handler = logging.StreamHandler(stream=stdio)
+        self.log.addHandler(handler)
+        cls_api_weather = api.ApiWeather(self.log)
+        cls_api_weather.sunrise = "2:29:57 AM"
+        cls_api_weather.sunset = "6:53:59 PM"
+        status = cls_api_weather.get_weather_data("36.7201600",
+                                                  "-33.86882",
+                                                  "2025-05-20")
+        stdout = stdio.getvalue()
+
+        self.assertFalse(status)
+        self.assertIn("Timestamps must be divisible by interval", stdout)
 
     @patch("optimshine.api_weather.ApiWeather._get_solar_sunrise_sunset_time")
     @patch("optimshine.api_common.ApiCommon.api_post_request")
