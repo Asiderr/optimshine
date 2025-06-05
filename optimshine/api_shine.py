@@ -5,7 +5,7 @@ import os
 import time
 
 from logging import RootLogger
-from optimshine.common_api import CommonApi
+from optimshine.api_common import ApiCommon
 
 SHINE_API_URL = "https://shine-api.felicitysolar.com"
 SHINE_API_ENDPOINTS = {
@@ -33,16 +33,9 @@ SHINE_SETTING_VALUES = {
 }
 
 
-class ApiShine(CommonApi):
+class ApiShine(ApiCommon):
     def __init__(self, log: RootLogger):
         self.log = log
-
-    def _get_request_time(self, delta=None):
-        if not delta:
-            now = datetime.datetime.now()
-        else:
-            now = datetime.datetime.now() - delta
-        return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def _get_shine_api_url(self, endpoint):
         if endpoint not in SHINE_API_ENDPOINTS.keys():
@@ -195,7 +188,7 @@ class ApiShine(CommonApi):
             return False
 
         if not data_date:
-            data_date = self._get_request_time(datetime.timedelta(days=1))
+            data_date = self.get_request_time(datetime.timedelta(days=1))
 
         production_data_url = self._get_shine_api_url("production_data")
         get_data_request = {
@@ -307,7 +300,7 @@ class ApiShine(CommonApi):
         get_device_request = {
             "deviceSn": inverter_serial_number,
             "deviceType": "OC",
-            "dateStr": self._get_request_time(),
+            "dateStr": self.get_request_time(),
         }
 
         self.log.debug(f"Sending device values request to {device_url}")
