@@ -247,7 +247,7 @@ class TestApiShine(unittest.TestCase):
         self.log.addHandler(handler)
 
         cls_api_shine = api.ApiShine(self.log)
-        result = cls_api_shine._get_device_list("test", "test")
+        result = cls_api_shine.get_device_list("test", "test")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -262,7 +262,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = api_data.test_token
-        result = cls_api_shine._get_device_list("test", "test")
+        result = cls_api_shine.get_device_list("test", "test")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -279,7 +279,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = api_data.test_token
-        result = cls_api_shine._get_device_list("test", "test")
+        result = cls_api_shine.get_device_list("test", "test")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -297,7 +297,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = api_data.test_token
-        result = cls_api_shine._get_device_list("test", "test")
+        result = cls_api_shine.get_device_list("test", "test")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -318,7 +318,7 @@ class TestApiShine(unittest.TestCase):
 
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = api_data.test_token
-        result = cls_api_shine._get_device_list("test", "test")
+        result = cls_api_shine.get_device_list("test", "test")
 
         self.assertTrue(result)
         self.assertTrue(hasattr(cls_api_shine, "device_list"))
@@ -477,7 +477,7 @@ class TestApiShine(unittest.TestCase):
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test"
         result = cls_api_shine.get_setting_value("test",
-                                                  "battery_charge_current")
+                                                 "battery_charge_current")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -493,7 +493,7 @@ class TestApiShine(unittest.TestCase):
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test"
         result = cls_api_shine.get_setting_value("test",
-                                                  "battery_charge_current")
+                                                 "battery_charge_current")
         stdout = stdio.getvalue()
 
         self.assertFalse(result)
@@ -514,7 +514,7 @@ class TestApiShine(unittest.TestCase):
         cls_api_shine = api.ApiShine(self.log)
         cls_api_shine.token = "test"
         result = cls_api_shine.get_setting_value("test",
-                                                  "battery_charge_current")
+                                                 "battery_charge_current")
 
         self.assertTrue(result)
         self.assertEqual(cls_api_shine.setting_value, 20)

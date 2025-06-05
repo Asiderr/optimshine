@@ -89,8 +89,8 @@ class TestOptimShine(unittest.TestCase):
         self.cl.get_plant_list = MagicMock()
         self.cl.get_plant_list.return_value = True
         self.cl.plants_id = {"plant_name": {"id": "0000"}}
-        self.cl._get_device_list = MagicMock()
-        self.cl._get_device_list.return_value = True
+        self.cl.get_device_list = MagicMock()
+        self.cl.get_device_list.return_value = True
         self.cl.device_list = ["1111"]
 
         self.cl._shine_setup()
@@ -99,7 +99,7 @@ class TestOptimShine(unittest.TestCase):
         self.assertIn("API Shine setup was successful", stdout)
         self.cl.login_shine.assert_called_once()
         self.cl.get_plant_list.assert_called_once()
-        self.cl._get_device_list.assert_called_once_with("0000", "INV")
+        self.cl.get_device_list.assert_called_once_with("0000", "INV")
         self.assertEqual(self.cl.inverters, ["1111"])
 
     @patch("optimshine.optim_shine.os")
@@ -128,8 +128,8 @@ class TestOptimShine(unittest.TestCase):
         self.cl.get_plant_list.return_value = True
         self.cl.plants_id = {"test_plant": {"id": "0000"},
                              "plant_name2": {"id": "2222"}}
-        self.cl._get_device_list = MagicMock()
-        self.cl._get_device_list.return_value = False
+        self.cl.get_device_list = MagicMock()
+        self.cl.get_device_list.return_value = False
 
         with self.assertRaises(SystemExit) as test_exit:
             self.cl._shine_setup()
@@ -138,7 +138,7 @@ class TestOptimShine(unittest.TestCase):
         self.assertIn("Failed to get list of inverters", stdout)
         self.cl.login_shine.assert_called_once()
         self.cl.get_plant_list.assert_called_once()
-        self.cl._get_device_list.assert_called_once_with("0000", "INV")
+        self.cl.get_device_list.assert_called_once_with("0000", "INV")
         self.assertEqual(test_exit.exception.code, 1)
 
     def test_shine_setup_empty_device_list(self):
@@ -148,8 +148,8 @@ class TestOptimShine(unittest.TestCase):
         self.cl.get_plant_list.return_value = True
         self.cl.plants_id = {"test_plant": {"id": "0000"},
                              "plant_name2": {"id": "2222"}}
-        self.cl._get_device_list = MagicMock()
-        self.cl._get_device_list.return_value = True
+        self.cl.get_device_list = MagicMock()
+        self.cl.get_device_list.return_value = True
         self.cl.device_list = None
 
         with self.assertRaises(SystemExit) as test_exit:
@@ -159,7 +159,7 @@ class TestOptimShine(unittest.TestCase):
         self.assertIn("No inverters found", stdout)
         self.cl.login_shine.assert_called_once()
         self.cl.get_plant_list.assert_called_once()
-        self.cl._get_device_list.assert_called_once_with("0000", "INV")
+        self.cl.get_device_list.assert_called_once_with("0000", "INV")
         self.assertEqual(test_exit.exception.code, 1)
 
     def test_shine_setup_pass(self):
@@ -169,8 +169,8 @@ class TestOptimShine(unittest.TestCase):
         self.cl.get_plant_list.return_value = True
         self.cl.plants_id = {"test_plant": {"id": "0000"},
                              "plant_name2": {"id": "2222"}}
-        self.cl._get_device_list = MagicMock()
-        self.cl._get_device_list.return_value = True
+        self.cl.get_device_list = MagicMock()
+        self.cl.get_device_list.return_value = True
         self.cl.device_list = ["1111"]
 
         self.cl._shine_setup()
@@ -179,7 +179,7 @@ class TestOptimShine(unittest.TestCase):
         self.assertIn("API Shine setup was successful", stdout)
         self.cl.login_shine.assert_called_once()
         self.cl.get_plant_list.assert_called_once()
-        self.cl._get_device_list.assert_called_once_with("0000", "INV")
+        self.cl.get_device_list.assert_called_once_with("0000", "INV")
         self.assertEqual(self.cl.inverters, ["1111"])
 
     def test_check_weather_get_weather_data_fail(self):

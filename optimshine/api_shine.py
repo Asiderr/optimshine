@@ -35,16 +35,46 @@ SHINE_SETTING_VALUES = {
 
 
 class ApiShine(ApiCommon):
+    """
+    ApiShine is a class that provides methods to interact with
+    the FelicitySolar Shine API.
+
+    It includes functionalities for logging in, retrieving plant
+    and device lists, obtaining production data, and accessing various
+    settings and device values.
+    """
     def __init__(self, log: RootLogger):
         self.log = log
 
     def _get_shine_api_url(self, endpoint):
+        """
+        Retrieves the full API URL for a given endpoint.
+
+        Args:
+            endpoint (str): The API endpoint to retrieve the URL for.
+
+        Returns:
+            str or None: The full API URL if the endpoint is valid,
+                         None if the endpoint is not found.
+        """
         if endpoint not in SHINE_API_ENDPOINTS.keys():
             self.log.error(f"{endpoint} API endpoint not found!")
             return None
         return f"{SHINE_API_URL}{SHINE_API_ENDPOINTS[endpoint]}"
 
     def login_shine(self):
+        """
+        Logs in to the Felicity Solar Shine API using credentials stored
+        in environment variables.
+
+        This method retrieves the login URL and user credentials, sends a
+        login request, and processes the response to obtain an authentication
+        token. The token's time-to-live (TTL) is validated to ensure it does
+        not exceed 24 hours.
+
+        Returns:
+            bool: True if login is successful, False otherwise.
+        """
         self.log.info("Trying to log in to felicitysolar shine API.")
         login_url = self._get_shine_api_url("login")
         shine_user = os.getenv("SHINE_USER")
@@ -99,6 +129,19 @@ class ApiShine(ApiCommon):
         return True
 
     def get_plant_list(self):
+        """
+        Retrieves a list of plants from the Shine API.
+
+        This method checks if the session is authorized by verifying
+        the presence of a token. It sends a request to the plant list
+        endpoint and processes the response to extract plant information.
+        If successful, it populates the `plants_id` attribute with the
+        plant details.
+
+        Returns:
+            bool: True if the plant list is successfully obtained,
+                  False otherwise.
+        """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -158,9 +201,18 @@ class ApiShine(ApiCommon):
         self.log.info("Plant list successfully obtained.")
         return True
 
-    def _get_device_list(self, plant_id, device_type):
+    def get_device_list(self, plant_id, device_type):
         """
-        INV, BP
+        Retrieves a list of devices of a specified type for a given plant.
+
+        Args:
+            plant_id (str): The ID of the plant for which to retrieve
+                            the device list.
+            device_type (str): The type of devices to retrieve (e.g. INV, BP).
+
+        Returns:
+            bool: True if the device list was successfully obtained,
+                  False otherwise.
         """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
@@ -203,6 +255,18 @@ class ApiShine(ApiCommon):
         return True
 
     def _get_pv_production_data(self, inverter_serial_number, data_date=None):
+        """
+        Retrieves photovoltaic (PV) production data for a specified inverter.
+
+        Args:
+            inverter_serial_number (str): The serial number of the inverter.
+            data_date (str, optional): The date for which to retrieve data in
+                                       'YYYY-MM-DD' format. If not provided,
+                                       defaults to the previous day's date.
+
+        Returns:
+            bool: True if data retrieval is successful, False otherwise.
+        """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -268,6 +332,17 @@ class ApiShine(ApiCommon):
         return True
 
     def get_setting_value(self, inverter_serial_number, value_name):
+        """
+        Retrieves the specified setting value for a given inverter.
+
+        Args:
+            inverter_serial_number (str): The serial number of the inverter.
+            value_name (str): The name of the setting value to retrieve.
+
+        Returns:
+            bool: True if the setting value was successfully obtained,
+                  False otherwise.
+        """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -306,6 +381,17 @@ class ApiShine(ApiCommon):
         return True
 
     def get_device_value(self, inverter_serial_number, value_name):
+        """
+        Retrieves the specified device value for a given inverter.
+
+        Args:
+            inverter_serial_number (str): The serial number of the inverter.
+            value_name (str): The name of the value to retrieve.
+                              Currently supported value names: battery_soc
+
+        Returns:
+            bool: True if the value was successfully obtained, False otherwise.
+        """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False
@@ -345,6 +431,17 @@ class ApiShine(ApiCommon):
         return True
 
     def _setting_command_status(self, id, timeout=10):
+        """
+        Checks the status of a setting command (e.g. setting charging current).
+
+        Args:
+            id (int): The identifier of the command whose status is read
+            timeout (int, optional): The maximum time to wait for the command
+
+        Returns:
+            bool: True if the setting command sets value successfully,
+                  False otherwise.
+        """
         if not hasattr(self, "token"):
             self.log.error("Session is not authorized!")
             return False

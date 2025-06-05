@@ -9,10 +9,26 @@ from optimshine.api_common import ApiCommon
 
 
 class ApiWeather(ApiCommon):
+    """
+    ApiWeather is a class that handles weather data retrieval based on
+    geographical coordinates and date. It interacts with external APIs
+    to obtain sunrise and sunset times, as well as weather data.
+    """
     def __init__(self, log: RootLogger):
         self.log = log
 
-    def _get_timestamp_hour(self, date, time):
+    def get_timestamp_hour(self, date, time):
+        """
+        Convert a given date and time into a UTC timestamp representing
+        the start of the hour.
+
+        Args:
+            date (str): The date in the format 'YYYY-MM-DD'.
+            time (str): The time in the format 'HH:MM:SS AM/PM'.
+
+        Returns:
+            int: The UTC timestamp corresponding to the start of the hour.
+        """
         dt_time = datetime.datetime.strptime(
             f"{date} {time}",
             "%Y-%m-%d %I:%M:%S %p",
@@ -22,6 +38,19 @@ class ApiWeather(ApiCommon):
         return int(hour.timestamp())
 
     def _get_solar_sunrise_sunset_time(self, latitude, longitude, date):
+        """
+        Retrieves the sunrise and sunset times for a given location and date.
+
+        Args:
+            latitude (float): The latitude of the location.
+            longitude (float): The longitude of the location.
+            date (str): The date for which to retrieve sunrise and sunset
+                        times, formatted as 'YYYY-MM-DD'.
+
+        Returns:
+            bool: True if the sunrise and sunset times were successfully
+                  obtained, False otherwise.
+        """
         sunrise_url = "https://api.sunrise-sunset.org/json?"
         sunrise_args = f"lat={latitude}&lng={longitude}&data={date}"
 
@@ -42,6 +71,20 @@ class ApiWeather(ApiCommon):
         return True
 
     def get_weather_data(self, latitude, longitude, date):
+        """
+        Retrieves weather data (sunrise and sunset times, low cloud data)
+        based on the provided latitude, longitude, and date.
+
+        Args:
+            latitude (float): The latitude of the location.
+            longitude (float): The longitude of the location.
+            date (str): The date for which to retrieve weather data in
+                        'YYYY-MM-DD' format.
+
+        Returns:
+            bool: True if weather data is successfully obtained,
+                  False otherwise.
+        """
         if not self._get_solar_sunrise_sunset_time(latitude, longitude,
                                                    date):
             self.log.error("Error during obtaining sunrise or sunset!")
@@ -51,8 +94,8 @@ class ApiWeather(ApiCommon):
             self.log.error("Sunrise or sunset cannot be none!")
             return False
 
-        sunrise_hour_ts = self._get_timestamp_hour(date, self.sunrise)
-        sunset_hour_ts = self._get_timestamp_hour(date, self.sunset)
+        sunrise_hour_ts = self.get_timestamp_hour(date, self.sunrise)
+        sunset_hour_ts = self.get_timestamp_hour(date, self.sunset)
         # Day ends after 12 AM
         if sunrise_hour_ts > sunset_hour_ts:
             sunset_hour_ts += 86400
@@ -61,7 +104,7 @@ class ApiWeather(ApiCommon):
         self.log.debug(f"Sunrise timestamp: {sunrise_hour_ts}")
         self.log.debug(f"Sunset timestamp: {sunset_hour_ts}")
 
-        weather_ts = self._get_timestamp_hour(date, "12:00:00 AM")
+        weather_ts = self.get_timestamp_hour(date, "12:00:00 AM")
         self.log.debug(f"Latitude: {latitude}")
         self.log.debug(f"Longitude: {longitude}")
         self.log.debug(f"Weather timestamp: {weather_ts}")
