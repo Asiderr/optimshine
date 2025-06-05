@@ -71,3 +71,14 @@ To check test coverage use
 ```
 coverage run --source=optimshine -m unittest discover
 ```
+
+## License
+
+This project is licensed under the GNU Lesser General Public License v3.0
+or later (LGPL-3.0-or-later).
+
+You are free to use, modify, and redistribute this software under the terms
+of the license. See the [COPYING](./COPYING) file or visit
+[https://www.gnu.org/licenses/lgpl-3.0.html](https://www.gnu.org/licenses/lgpl-3.0.html)
+for full details.
+

@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+#
+# Copyright 2025 Norbert Kamiński <norbert.kaminski@xarium.world>
+#
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+
 import io
 import os
 import logging
