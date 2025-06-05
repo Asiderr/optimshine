@@ -1,0 +1,15 @@
+[Unit]
+Description=Optime shine tool to PV optimization
+After=network.target
+
+[Service]
+Type=notify
+ExecStart=<venv_path>/venv/bin/python -m optimshine.optim_shine
+WorkingDirectory=<repo-path>
+Restart=always
+RestartSec=3
+WatchdogSec=120
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
