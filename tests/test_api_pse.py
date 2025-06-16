@@ -73,36 +73,42 @@ class TestPseApi(unittest.TestCase):
         mock_api_get_request.return_value = {
             "value": [
                 {
-                  "doba": "2025-05-14",
-                  "rce_pln": 439.58,
-                  "udtczas": "2025-05-14 00:15:00",
-                  "udtczas_oreb": "00:00 - 00:15",
-                  "business_date": "2025-05-14",
-                  "source_datetime": "2025-05-13 13:49:22.204"
+                    "dtime": "2025-06-16 00:15:00",
+                    "period": "00:00 - 00:15",
+                    "rce_pln": 439.58000,
+                    "dtime_utc": "2025-06-15 22:15:00",
+                    "period_utc": "22:00 - 22:15",
+                    "business_date": "2025-06-16",
+                    "publication_ts": "2025-06-15 13:44:11.203",
+                    "publication_ts_utc": "2025-06-15 11:44:11.203"
                 },
                 {
-                  "doba": "2025-05-14",
-                  "rce_pln": 449.58,
-                  "udtczas": "2025-05-14 00:30:00",
-                  "udtczas_oreb": "00:15 - 00:30",
-                  "business_date": "2025-05-14",
-                  "source_datetime": "2025-05-13 13:49:22.204"
+                    "dtime": "2025-06-16 00:30:00",
+                    "period": "00:15 - 00:30",
+                    "rce_pln": 449.58000,
+                    "dtime_utc": "2025-06-15 22:30:00",
+                    "period_utc": "22:15 - 22:30",
+                    "business_date": "2025-06-16",
+                    "publication_ts": "2025-06-15 13:44:11.203",
+                    "publication_ts_utc": "2025-06-15 11:44:11.203"
                 },
                 {
-                  "doba": "2025-05-14",
-                  "rce_pln": 459.58,
-                  "udtczas": "2025-05-14 00:45:00",
-                  "udtczas_oreb": "00:30 - 00:45",
-                  "business_date": "2025-05-14",
-                  "source_datetime": "2025-05-13 13:49:22.204"
+                    "dtime": "2025-06-16 00:45:00",
+                    "period": "00:30 - 00:45",
+                    "rce_pln": 459.58000,
+                    "dtime_utc": "2025-06-15 22:45:00",
+                    "period_utc": "22:30 - 22:45",
+                    "business_date": "2025-06-16",
+                    "publication_ts": "2025-06-15 13:44:11.203",
+                    "publication_ts_utc": "2025-06-15 11:44:11.203"
                 },
             ]
         }
         expected_date = "2025-05-14"
         expected_prices = {
-            "2025-05-14 00:15:00": 439.58,
-            "2025-05-14 00:30:00": 449.58,
-            "2025-05-14 00:45:00": 459.58,
+            "2025-06-16 00:15:00": 439.58,
+            "2025-06-16 00:30:00": 449.58,
+            "2025-06-16 00:45:00": 459.58,
         }
 
         cls_api_pse = api.ApiPse(self.log)
