@@ -49,9 +49,9 @@ class ApiPse(ApiCommon):
             return False
 
         self.rce_date = date
-        self.rce_prices = {}
-        for quarter in response_data:
-            self.rce_prices.update({quarter["dtime"]: quarter["rce_pln"]})
+        self.rce_prices = {
+            quarter["dtime"]: quarter["rce_pln"] for quarter in response_data
+        }
 
         self.log.info(f"Successfully obtained RCE data for {self.rce_date}.")
         return True
